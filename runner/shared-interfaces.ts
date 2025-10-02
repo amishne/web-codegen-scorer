@@ -442,9 +442,9 @@ export interface RunDetails {
       command: string;
       args: string[];
       /** Tools reported for this server. */
-      tools?: string[];
+      tools: string[];
       /** Resources reported for this server. */
-      resources?: string[];
+      resources: string[];
     }[];
 
     /** Logs produced by all of the servers. */

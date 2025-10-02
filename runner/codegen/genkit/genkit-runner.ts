@@ -215,6 +215,7 @@ export class GenkitRunner implements LlmRunner {
     }
   }
 
+<<<<<<< HEAD
   async startMcpServerHost(
     hostName: string,
     servers: McpServerOptions[],
