@@ -1,4 +1,9 @@
-import {LocalLlmGenerateFilesRequestOptions, LlmRunner} from './llm-runner.js';
+import {
+  LlmGenerateFilesRequestOptions,
+  LlmRunner,
+  McpServerDetails,
+  McpServerOptions,
+} from './llm-runner.js';
 import {join} from 'path';
 import {mkdirSync} from 'fs';
 import {writeFile} from 'fs/promises';
@@ -13,6 +18,12 @@ export class GeminiCliRunner extends BaseCliAgentRunner implements LlmRunner {
   readonly hasBuiltInRepairLoop = true;
   protected ignoredFilePatterns = ['**/GEMINI.md', '**/.geminiignore'];
   protected binaryName = 'gemini';
+  protected mcpServers?: {
+    name: string;
+    command: string;
+    args: string[];
+    env?: Record<string, string> | undefined;
+  }[];
 
   getSupportedModels(): string[] {
     return SUPPORTED_MODELS;
@@ -30,7 +41,23 @@ export class GeminiCliRunner extends BaseCliAgentRunner implements LlmRunner {
     ];
   }
 
-  protected async writeAgentFiles(options: LocalLlmGenerateFilesRequestOptions): Promise<void> {
+  async startMcpServerHost?(
+    hostName: string,
+    servers: McpServerOptions[],
+  ): Promise<McpServerDetails> {
+    this.mcpServers = servers;
+    // This is called before the agent is booted, so we don't have access to the MCP yet.
+    return {
+      tools: ['<tool list unavailable in Gemini CLI>'],
+      resources: ['<resource list unavailable in Gemini CLI>'],
+    };
+  }
+
+  flushMcpServerLogs(): string[] {
+    return [];
+  }
+
+  protected async writeAgentFiles(options: LlmGenerateFilesRequestOptions): Promise<void> {
     const {context} = options;
     const ignoreFilePath = join(context.directory, '.geminiignore');
     const instructionFilePath = join(context.directory, 'GEMINI.md');
@@ -50,9 +77,17 @@ export class GeminiCliRunner extends BaseCliAgentRunner implements LlmRunner {
     ];
 
     if (context.packageManager) {
+      // DO NOT SUBMIT
+      // For debugging, show our settings.json content.
+      const settingsContent = this.getGeminiSettingsFile(
+        context.packageManager,
+        context.possiblePackageManagers,
+      );
+      console.log(settingsContent);
       writeFile(
         join(settingsDir, 'settings.json'),
-        this.getGeminiSettingsFile(context.packageManager, context.possiblePackageManagers),
+        // this.getGeminiSettingsFile(context.packageManager, context.possiblePackageManagers),
+        settingsContent,
       );
     }
 
@@ -60,7 +95,7 @@ export class GeminiCliRunner extends BaseCliAgentRunner implements LlmRunner {
   }
 
   private getGeminiSettingsFile(packageManager: string, possiblePackageManagers: string[]): string {
-    const config = {
+    const config: Record<string, any> = {
       excludeTools: [
         // Prevent Gemini from using version control and package
         // managers since doing so via prompting doesn't always work.
@@ -78,6 +113,17 @@ export class GeminiCliRunner extends BaseCliAgentRunner implements LlmRunner {
         `run_shell_command(${packageManager} list)`,
       ],
     };
+
+    if (this.mcpServers) {
+      const mcpServerConfig: Record<string, any> = {};
+      for (const server of this.mcpServers) {
+        mcpServerConfig[server.name] = {
+          command: server.command,
+          args: server.args,
+        };
+      }
+      config.mcpServers = mcpServerConfig;
+    }
 
     return JSON.stringify(config, null, 2);
   }

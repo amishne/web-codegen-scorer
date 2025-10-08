@@ -51,6 +51,9 @@ export abstract class BaseCliAgentRunner {
     await this.writeAgentFiles(options);
 
     const reasoning = await this.runAgentProcess(options);
+    console.log('reasoning:');
+    console.log(reasoning);
+
     const finalSnapshot = await DirectorySnapshot.forDirectory(context.directory, ignoredPatterns);
 
     const diff = finalSnapshot.getChangedOrAddedFiles(initialSnapshot);

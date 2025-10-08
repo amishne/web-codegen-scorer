@@ -96,6 +96,18 @@
     "@openai/codex": "^0.46.0"
   },
   "devDependencies": {
+    "@angular-devkit/architect": "file:../angular-cli/dist/_angular-devkit_architect.tgz",
+    "@angular-devkit/architect-cli": "file:../angular-cli/dist/_angular-devkit_architect-cli.tgz",
+    "@angular-devkit/build-angular": "file:../angular-cli/dist/_angular-devkit_build-angular.tgz",
+    "@angular-devkit/build-webpack": "file:../angular-cli/dist/_angular-devkit_build-webpack.tgz",
+    "@angular-devkit/core": "file:../angular-cli/dist/_angular-devkit_core.tgz",
+    "@angular-devkit/schematics": "file:../angular-cli/dist/_angular-devkit_schematics.tgz",
+    "@angular-devkit/schematics-cli": "file:../angular-cli/dist/_angular-devkit_schematics-cli.tgz",
+    "@angular/build": "file:../angular-cli/dist/_angular_build.tgz",
+    "@angular/cli": "file:../angular-cli/dist/_angular_cli.tgz",
+    "@angular/create": "file:../angular-cli/dist/_angular_create.tgz",
+    "@angular/pwa": "file:../angular-cli/dist/_angular_pwa.tgz",
+    "@angular/ssr": "file:../angular-cli/dist/_angular_ssr.tgz",
     "@anthropic-ai/claude-code": "^2.0.0",
     "@google/gemini-cli": "^0.8.0",
     "@openai/codex": "^0.46.0",
