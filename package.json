@@ -110,7 +110,9 @@
     "@angular/ssr": "file:../angular-cli/dist/_angular_ssr.tgz",
     "@anthropic-ai/claude-code": "^2.0.0",
     "@google/gemini-cli": "^0.8.0",
+    "@ngtools/webpack": "file:../angular-cli/dist/_ngtools_webpack.tgz",
     "@openai/codex": "^0.46.0",
+    "@schematics/angular": "file:../angular-cli/dist/_schematics_angular.tgz",
     "prettier": "^3.5.3",
     "tsx": "^4.20.3"
   }

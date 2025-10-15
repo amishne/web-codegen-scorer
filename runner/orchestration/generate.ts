@@ -1,16 +1,16 @@
-import { randomUUID } from "crypto";
-import { existsSync, readdirSync } from "fs";
-import { availableParallelism } from "os";
-import PQueue from "p-queue";
-import { basename, join } from "path";
-import { assertValidModelName } from "../codegen/llm-runner.js";
-import { getRunnerByName } from "../codegen/runner-creation.js";
-import { LLM_OUTPUT_DIR, REPORT_VERSION } from "../configuration/constants.js";
-import { getEnvironmentByPath } from "../configuration/environment-resolution.js";
-import { Environment } from "../configuration/environment.js";
-import { DynamicProgressLogger } from "../progress/dynamic-progress-logger.js";
-import { TextProgressLogger } from "../progress/text-progress-logger.js";
-import { logReportHeader } from "../reporting/report-logging.js";
+import {randomUUID} from 'crypto';
+import {existsSync, readdirSync} from 'fs';
+import {availableParallelism} from 'os';
+import PQueue from 'p-queue';
+import {basename, join} from 'path';
+import {assertValidModelName} from '../codegen/llm-runner.js';
+import {getRunnerByName} from '../codegen/runner-creation.js';
+import {LLM_OUTPUT_DIR, REPORT_VERSION} from '../configuration/constants.js';
+import {getEnvironmentByPath} from '../configuration/environment-resolution.js';
+import {Environment} from '../configuration/environment.js';
+import {DynamicProgressLogger} from '../progress/dynamic-progress-logger.js';
+import {TextProgressLogger} from '../progress/text-progress-logger.js';
+import {logReportHeader} from '../reporting/report-logging.js';
 import {
   AssessmentConfig,
   AssessmentResult,
@@ -18,15 +18,15 @@ import {
   RootPromptDefinition,
   RunDetails,
   RunInfo,
-} from "../shared-interfaces.js";
-import { UserFacingError } from "../utils/errors.js";
-import { executeCommand } from "../utils/exec.js";
-import { callWithTimeout } from "../utils/timeout.js";
-import { LocalExecutor } from "./executors/local-executor.js";
-import { startEvaluationTask } from "./generate-eval-task.js";
-import { prepareSummary } from "./generate-summary.js";
-import { getRunGroupId } from "./grouping.js";
-import { combineAbortSignals } from "../utils/abort-signal.js";
+} from '../shared-interfaces.js';
+import {UserFacingError} from '../utils/errors.js';
+import {executeCommand} from '../utils/exec.js';
+import {callWithTimeout} from '../utils/timeout.js';
+import {LocalExecutor} from './executors/local-executor.js';
+import {startEvaluationTask} from './generate-eval-task.js';
+import {prepareSummary} from './generate-summary.js';
+import {getRunGroupId} from './grouping.js';
+import {combineAbortSignals} from '../utils/abort-signal.js';
 
 /**
  * Orchestrates the entire assessment process for each prompt defined in the `prompts` array.
@@ -41,21 +41,16 @@ import { combineAbortSignals } from "../utils/abort-signal.js";
  * @returns A Promise that resolves to an array of AssessmentResult objects,
  *          each containing the prompt, generated code, and final validation status.
  */
-export async function generateCodeAndAssess(
-  options: AssessmentConfig
-): Promise<RunInfo> {
-  const env = await getEnvironmentByPath(
-    options.environmentConfigPath,
-    options.runner
-  );
+export async function generateCodeAndAssess(options: AssessmentConfig): Promise<RunInfo> {
+  const env = await getEnvironmentByPath(options.environmentConfigPath, options.runner);
   const cleanup = async () => {
     await env.executor.destroy();
   };
 
   // Ensure cleanup logic runs when the evaluation is aborted.
-  options.abortSignal?.addEventListener("abort", cleanup);
+  options.abortSignal?.addEventListener('abort', cleanup);
 
-  const ratingLlm = await getRunnerByName("genkit");
+  const ratingLlm = await getRunnerByName('genkit');
 
   await assertValidModelName(options.model, env.executor);
 
@@ -63,30 +58,26 @@ export async function generateCodeAndAssess(
     const promptsToProcess = getCandidateExecutablePrompts(
       env,
       options.localMode,
-      options.promptFilter
+      options.promptFilter,
     ).slice(0, options.limit);
     const progress =
-      options.logging === "dynamic"
-        ? new DynamicProgressLogger()
-        : new TextProgressLogger();
+      options.logging === 'dynamic' ? new DynamicProgressLogger() : new TextProgressLogger();
     const appConcurrency =
-      options.concurrency === "auto"
+      options.concurrency === 'auto'
         ? Math.floor(availableParallelism() * 0.8)
         : options.concurrency;
 
     if (promptsToProcess.length === 0) {
       throw new UserFacingError(
         `No prompts have been configured for environment '${env.displayName}'` +
-          (options.promptFilter
-            ? ` and filtered by '${options.promptFilter}'.`
-            : ".")
+          (options.promptFilter ? ` and filtered by '${options.promptFilter}'.` : '.'),
       );
     }
 
     // Scrolls the terminal back to the top so that our logging looks a bit cleaner.
     // via https://stackoverflow.com/questions/9006988/node-js-on-windows-how-to-clear-console
-    if (options.logging === "dynamic") {
-      process.stdout.write("\x1Bc");
+    if (options.logging === 'dynamic') {
+      process.stdout.write('\x1Bc');
     }
 
     logReportHeader(env, promptsToProcess.length, appConcurrency, options);
@@ -95,20 +86,16 @@ export async function generateCodeAndAssess(
     await installChrome();
 
     const mcpServerDetails =
-      env.executor instanceof LocalExecutor &&
-      options.startMcp &&
-      env.executor.startMcpServerHost
-        ? await env.executor.startMcpServerHost(
-            `mcp-${env.clientSideFramework.id}`
-          )
+      env.executor instanceof LocalExecutor && options.startMcp && env.executor.startMcpServerHost
+        ? await env.executor.startMcpServerHost(`mcp-${env.clientSideFramework.id}`)
         : undefined;
 
     progress.initialize(promptsToProcess.length);
 
-    const appConcurrencyQueue = new PQueue({ concurrency: appConcurrency });
+    const appConcurrencyQueue = new PQueue({concurrency: appConcurrency});
     const workerConcurrencyQueue = new PQueue({
       concurrency:
-        options.concurrency === "auto"
+        options.concurrency === 'auto'
           ? // Building can be really expensive. We likely should add support for "CPU hints" per environment.
             // E.g. CLI building is really CPU intensive with ESBuild being multi-core.
             // TODO: Follow-up on this and add CPU hints.
@@ -117,7 +104,7 @@ export async function generateCodeAndAssess(
     });
 
     const allTasks: Promise<AssessmentResult[]>[] = [];
-    const failedPrompts: CompletionStats["failedPrompts"] = [];
+    const failedPrompts: CompletionStats['failedPrompts'] = [];
 
     for (const rootPromptDef of promptsToProcess) {
       allTasks.push(
@@ -128,7 +115,7 @@ export async function generateCodeAndAssess(
           try {
             results = await callWithTimeout(
               `Evaluation of ${rootPromptDef.name}`,
-              async (timeoutAbortSignal) =>
+              async timeoutAbortSignal =>
                 startEvaluationTask(
                   options,
                   evalID,
@@ -137,12 +124,12 @@ export async function generateCodeAndAssess(
                   rootPromptDef,
                   combineAbortSignals(timeoutAbortSignal, options.abortSignal),
                   workerConcurrencyQueue,
-                  progress
+                  progress,
                 ),
               // 30min max per app evaluation. We just want to make sure it never gets stuck.
               // Note that this timeout is expected to never be hit as individual action timeouts
               // should fire first. E.g. local executor build or test timeouts.
-              30
+              30,
             );
             return results;
           } catch (e: unknown) {
@@ -157,18 +144,13 @@ export async function generateCodeAndAssess(
               details += `\nStack: ${e.stack}`;
             }
 
-            progress.log(
-              rootPromptDef,
-              "error",
-              "Failed to evaluate code",
-              details
-            );
+            progress.log(rootPromptDef, 'error', 'Failed to evaluate code', details);
             return [] satisfies AssessmentResult[];
           } finally {
             progress.evalFinished(rootPromptDef, results || []);
             await env.executor.finalizeEval(evalID);
           }
-        })
+        }),
       );
     }
 
@@ -197,16 +179,12 @@ export async function generateCodeAndAssess(
           allPromptsCount: promptsToProcess.length,
           failedPrompts,
         },
-        options
+        options,
       ),
       timestamp: timestamp.toISOString(),
       reportName: options.reportName,
-      systemPromptGeneration: env.classifyPrompts
-        ? "Classified 🕵️"
-        : env.systemPromptGeneration(),
-      systemPromptRepair: env.classifyPrompts
-        ? "Classified 🕵️"
-        : env.systemPromptRepair(),
+      systemPromptGeneration: env.classifyPrompts ? 'Classified 🕵️' : env.systemPromptGeneration(),
+      systemPromptRepair: env.classifyPrompts ? 'Classified 🕵️' : env.systemPromptRepair(),
       // Deduplicate labels before finalizing the report.
       labels: Array.from(new Set(options.labels)),
       mcp,
@@ -223,7 +201,7 @@ export async function generateCodeAndAssess(
     await cleanup();
 
     // Remove potential abort listeners to avoid memory leaks.
-    options.abortSignal?.removeEventListener("abort", cleanup);
+    options.abortSignal?.removeEventListener('abort', cleanup);
   }
 }
 
@@ -231,7 +209,7 @@ export async function generateCodeAndAssess(
 function getCandidateExecutablePrompts(
   env: Environment,
   localMode: boolean,
-  promptFilter: string | undefined
+  promptFilter: string | undefined,
 ): RootPromptDefinition[] {
   const envDir = join(LLM_OUTPUT_DIR, env.id);
   let result = env.executablePrompts;
@@ -242,10 +220,10 @@ function getCandidateExecutablePrompts(
     const localPromptNames = readdirSync(envDir, {
       withFileTypes: true,
     })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => basename(entry.name));
+      .filter(entry => entry.isDirectory())
+      .map(entry => basename(entry.name));
 
-    result = result.filter(({ name }) => localPromptNames.includes(name));
+    result = result.filter(({name}) => localPromptNames.includes(name));
   }
 
   // If there's no prompt filter, shuffle the array to introduce some randomness.
@@ -255,7 +233,7 @@ function getCandidateExecutablePrompts(
 
   // Otherwise only filter by name, but don't shuffle since
   // the user appears to be targeting a specific prompt.
-  return result.filter(({ name }) => name.includes(promptFilter));
+  return result.filter(({name}) => name.includes(promptFilter));
 }
 
 let chromeInstallPromise: Promise<unknown> | null = null;
@@ -266,9 +244,9 @@ async function installChrome(): Promise<void> {
   // installation is global so we can reuse the promise.
   if (!chromeInstallPromise) {
     chromeInstallPromise = executeCommand(
-      "npx puppeteer browsers install chrome",
+      'npx puppeteer browsers install chrome',
       // The command needs to run in a directory whose closest node_modules contain `puppeteer`.
-      import.meta.dirname
+      import.meta.dirname,
     );
   }
 

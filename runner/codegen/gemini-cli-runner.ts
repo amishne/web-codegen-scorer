@@ -1,6 +1,6 @@
 import {
-  LlmGenerateFilesRequestOptions,
   LlmRunner,
+  LocalLlmGenerateFilesRequestOptions,
   McpServerDetails,
   McpServerOptions,
 } from './llm-runner.js';
@@ -57,7 +57,7 @@ export class GeminiCliRunner extends BaseCliAgentRunner implements LlmRunner {
     return [];
   }
 
-  protected async writeAgentFiles(options: LlmGenerateFilesRequestOptions): Promise<void> {
+  protected async writeAgentFiles(options: LocalLlmGenerateFilesRequestOptions): Promise<void> {
     const {context} = options;
     const ignoreFilePath = join(context.directory, '.geminiignore');
     const instructionFilePath = join(context.directory, 'GEMINI.md');
